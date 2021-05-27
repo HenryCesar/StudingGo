@@ -15,7 +15,7 @@ func main() {
 
 	fmt.Println(ss)
 
-	si := []int{1, 26, 81, 45, 75, 698, 70, 781, 19}
+	si := []int{1, 26, 81, 45, 75, 698, 70, 781, 19} //sort.Ints
 
 	fmt.Println(si)
 
