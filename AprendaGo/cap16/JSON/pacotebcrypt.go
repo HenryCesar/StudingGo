@@ -8,6 +8,7 @@ import (
 
 func main() {
 	senha := "21Julho1980"
+	senhaerrada := "21Julho1990"
 
 	sb, err := bcrypt.GenerateFromPassword([]byte(senha), 10)
 	if err != nil {
@@ -15,5 +16,8 @@ func main() {
 	}
 
 	fmt.Println(string(sb))
+
+	fmt.Prinln(bcrypt.CompareHashAndPassword(sb, []byte(senha)))
+	fmt.Prinln(bcrypt.CompareHashAndPassword(sb, []byte(senhaerrada)))
 
 }
