@@ -7,6 +7,6 @@ import (
 
 func main() {
 	fmt.Println("Utilizando package quadrado:")
-	x = 10
-	fmt.Println("10 ao quadrado é:", quadrado(x))
+	x := 10
+	fmt.Println("10 ao quadrado é:", x) //Quadrado(x))
 }
