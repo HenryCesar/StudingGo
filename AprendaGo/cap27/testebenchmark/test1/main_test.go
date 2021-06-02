@@ -16,9 +16,9 @@ type test struct {
 
 func TestSomaEmTabela(t *testing.T) {
 	tests := []test{
-		test{data: []int{1, 2, 3}, answer: 6},
-		test{[]int{10, 11, 12}, 33},
-		test{[]int{-5, 0, 5, 10}, 10},
+		{data: []int{1, 2, 3}, answer: 6},
+		{[]int{10, 11, 12}, 33},
+		{[]int{-5, 0, 5, 10}, 10},
 	}
 	for _, v := range tests {
 		z := Soma(v.data...)
