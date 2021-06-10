@@ -23,7 +23,7 @@ func TestSomaEmTabela(t *testing.T) {
 	for _, v := range tests {
 		z := Soma(v.data...)
 		if z != v.answer {
-			t.Error("Expected:", v.answer, "Got:", z)
+			t.Error("Expected:", z, "Got:", v.answer)
 		}
 	}
 }
