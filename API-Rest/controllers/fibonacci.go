@@ -45,8 +45,7 @@ func GetNumber(c *fiber.Ctx) error {
 	input, err := strconv.ParseUint(body, 10, 64)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"success": false,
-			"message": "Cannot parse Input",
+			"done": false,
 		})
 	}
 
