@@ -1,20 +1,17 @@
 package controllers
 
 import (
+	"api-rest/models"
 	"strconv"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 )
 
-type Fibonacci struct {
-	Input    uint64        `json:"input"`
-	Result   uint64        `json:"result"`
-	Duration time.Duration `json:"duration"`
-}
-
-var all = []*Fibonacci{}
-var handler time.Duration
+var (
+	all     = []*models.Fibonacci{}
+	handler time.Duration
+)
 
 func timeTrack(start time.Time) {
 	elapsed := time.Since(start)
@@ -34,6 +31,21 @@ func callFibonacci(x uint64) uint64 {
 	return callFibonacci(x-1) + callFibonacci(x-2)
 }
 
+func checkFibonacci(ok int, check *models.Fibonacci, input uint64) (int, *models.Fibonacci) {
+	for _, c := range all {
+		if c.Input == input {
+			check = c
+			ok = 1
+			break
+		}
+	}
+	if ok == 1 {
+		return 1, check
+	} else {
+		return 0, check
+	}
+}
+
 func GetAll(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"queries": all,
@@ -49,19 +61,15 @@ func GetNumber(c *fiber.Ctx) error {
 		})
 	}
 
-	var check *Fibonacci
-	var ok int
-	for _, c := range all {
-		if c.Input == input {
-			check = c
-			ok = 1
-			break
-		}
-	}
+	var (
+		check     *models.Fibonacci
+		fibo      *models.Fibonacci
+		ok        int
+		fibResult uint64
+	)
+	res, check := checkFibonacci(ok, check, input)
 
-	var fibResult uint64
-	var fibo *Fibonacci
-	if ok == 1 {
+	if res == 1 {
 		return c.Status(fiber.StatusCreated).JSON(fiber.Map{
 			"done": true,
 			"fib": fiber.Map{
@@ -70,7 +78,7 @@ func GetNumber(c *fiber.Ctx) error {
 		})
 	} else {
 		fibResult = fibonacciCaller(input)
-		fibo = &Fibonacci{
+		fibo = &models.Fibonacci{
 			Input:    input,
 			Result:   fibResult,
 			Duration: handler,
