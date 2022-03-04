@@ -3,14 +3,21 @@ package controllers
 import (
 	"api-rest/models"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 )
 
 var (
-	all     = []*models.Fibonacci{}
-	handler time.Duration
+	handler   time.Duration
+	all       = []*models.Fibonacci{}
+	check     *models.Fibonacci
+	fibo      *models.Fibonacci
+	ok        int
+	cont      int
+	fibResult uint64
+	mutex     sync.RWMutex
 )
 
 func timeTrack(start time.Time) {
@@ -18,10 +25,19 @@ func timeTrack(start time.Time) {
 	handler = time.Duration(elapsed.Seconds())
 }
 
-func fibonacciCaller(x uint64) uint64 {
+func fibonacciCaller(x uint64) {
 	defer timeTrack(time.Now())
-	y := callFibonacci(x)
-	return y
+	fibResult = callFibonacci(x)
+
+	mutex.Lock()
+	cont++
+	fibo = &models.Fibonacci{
+		Input:    x,
+		Result:   fibResult,
+		Duration: handler,
+	}
+	all = append(all, fibo)
+	mutex.Unlock()
 }
 
 func callFibonacci(x uint64) uint64 {
@@ -31,18 +47,13 @@ func callFibonacci(x uint64) uint64 {
 	return callFibonacci(x-1) + callFibonacci(x-2)
 }
 
-func checkFibonacci(ok int, check *models.Fibonacci, input uint64) (int, *models.Fibonacci) {
+func checkFibonacci(input uint64) {
 	for _, c := range all {
 		if c.Input == input {
 			check = c
 			ok = 1
 			break
 		}
-	}
-	if ok == 1 {
-		return 1, check
-	} else {
-		return 0, check
 	}
 }
 
@@ -60,36 +71,19 @@ func GetNumber(c *fiber.Ctx) error {
 			"done": false,
 		})
 	}
+	checkFibonacci(input)
 
-	var (
-		check     *models.Fibonacci
-		fibo      *models.Fibonacci
-		ok        int
-		fibResult uint64
-	)
-	res, check := checkFibonacci(ok, check, input)
-
-	if res == 1 {
-		return c.Status(fiber.StatusCreated).JSON(fiber.Map{
+	if ok == 1 {
+		return c.Status(fiber.StatusFound).JSON(fiber.Map{
 			"done": true,
 			"fib": fiber.Map{
 				"all": check,
 			},
 		})
 	} else {
-		fibResult = fibonacciCaller(input)
-		fibo = &models.Fibonacci{
-			Input:    input,
-			Result:   fibResult,
-			Duration: handler,
-		}
-		all = append(all, fibo)
+		go fibonacciCaller(input)
 		return c.Status(fiber.StatusCreated).JSON(fiber.Map{
-			"done": true,
-			"fib": fiber.Map{
-				"all": fibo,
-			},
+			"done": false,
 		})
 	}
-
 }
