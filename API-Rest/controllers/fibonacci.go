@@ -15,28 +15,31 @@ var (
 	check     *models.Fibonacci
 	fibo      *models.Fibonacci
 	ok        int
-	cont      int
 	fibResult uint64
+	count     int
+	completed int
 	mutex     sync.RWMutex
 )
 
+// Função que recebe o tempo inicial e insere o tempo final na variável para depois converter em segundos.
 func timeTrack(start time.Time) {
 	elapsed := time.Since(start)
 	handler = time.Duration(elapsed.Seconds())
 }
 
+// Função que chama o Fibonacci
 func fibonacciCaller(x uint64) {
 	defer timeTrack(time.Now())
 	fibResult = callFibonacci(x)
 
 	mutex.Lock()
-	cont++
 	fibo = &models.Fibonacci{
 		Input:    x,
 		Result:   fibResult,
 		Duration: handler,
 	}
 	all = append(all, fibo)
+	completed++
 	mutex.Unlock()
 }
 
@@ -48,6 +51,7 @@ func callFibonacci(x uint64) uint64 {
 }
 
 func checkFibonacci(input uint64) {
+	ok = 0
 	for _, c := range all {
 		if c.Input == input {
 			check = c
@@ -63,6 +67,7 @@ func GetAll(c *fiber.Ctx) error {
 	})
 }
 
+// Função que retorna o resultado do Fibonacci do número inserido
 func GetNumber(c *fiber.Ctx) error {
 	body := c.Params("input")
 	input, err := strconv.ParseUint(body, 10, 64)
@@ -73,17 +78,29 @@ func GetNumber(c *fiber.Ctx) error {
 	}
 	checkFibonacci(input)
 
+	count++
 	if ok == 1 {
+
 		return c.Status(fiber.StatusFound).JSON(fiber.Map{
 			"done": true,
 			"fib": fiber.Map{
-				"all": check,
+				"": check,
 			},
 		})
 	} else {
 		go fibonacciCaller(input)
-		return c.Status(fiber.StatusCreated).JSON(fiber.Map{
-			"done": false,
-		})
+		time.Sleep(5 * time.Millisecond)
+		if count != completed {
+			return c.Status(fiber.StatusAccepted).JSON(fiber.Map{
+				"done": false,
+			})
+		} else {
+			return c.Status(fiber.StatusCreated).JSON(fiber.Map{
+				"done": true,
+				"fib": fiber.Map{
+					"": fibo,
+				},
+			})
+		}
 	}
 }
