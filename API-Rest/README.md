@@ -15,7 +15,7 @@
 }
 ```
 
-## A API deve ter um timeout de 500 ms, caso o cáculo leve mais que 500 ms, ela deve retornar:
+### A API deve ter um timeout de 500 ms, caso o cáculo leve mais que 500 ms, ela deve retornar:
 
 ```JSON
 {
@@ -23,7 +23,7 @@
 }
 ```
 
-## O cálculo deve ser realizado em paralelo e armazenado em um `map`, quando for solicitado novamente o número, se já tiver sido calculado, olhar no `map` para retornar o valor.
+### O cálculo deve ser realizado em paralelo e armazenado em um `map`, quando for solicitado novamente o número, se já tiver sido calculado, olhar no `map` para retornar o valor.
 
 > Também deve ter o retorno `/all` para a API, retornando um objeto JSON com todas as consultas feitas no programa, por exemplo:
 
