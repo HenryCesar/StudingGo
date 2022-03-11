@@ -78,30 +78,21 @@ func GetNumber(c *fiber.Ctx) error {
 	if checker == 1 {
 		return c.Status(fiber.StatusFound).JSON(fiber.Map{
 			"done": true,
-			"fib": fiber.Map{
-				"": check,
-			},
+			"fib":  check,
 		})
-	}
-
-	// Se não, liga um timer de 500 ms. Caso o timer estoure, dá false.
-	timerToFalse := time.NewTimer(time.Millisecond * 500)
-	go fibonacciCaller(input)
-
-	<-timerToFalse.C
-	checker2 := checkFibonacci(input)
-	// Checa novamente se o número existe, caso houve o registro antes dos 500 ms, retorna, se não da false.
-	if checker2 == 1 {
-		timerToFalse.Stop()
-		return c.Status(fiber.StatusCreated).JSON(fiber.Map{
-			"done": true,
-			"fib": fiber.Map{
-				"": fibo,
-			},
-		})
-	} else {
-		return c.Status(fiber.StatusAccepted).JSON(fiber.Map{
-			"done": false,
-		})
+	} else { //Se não, roda a goroutine do fibonacci.
+		go fibonacciCaller(input)
+		time.Sleep(400 * time.Millisecond) //Espera 400ms pela resposta da goroutine
+		checker2 := checkFibonacci(input)  //Checa se foi efetuado o fibonacci
+		if checker2 == 1 {                 //Se sim, retorna o valor
+			return c.Status(fiber.StatusFound).JSON(fiber.Map{
+				"done": true,
+				"fib":  check,
+			})
+		} else { // Se não, retorna "false" e continua rodando.
+			return c.Status(fiber.StatusCreated).JSON(fiber.Map{
+				"done": false,
+			})
+		}
 	}
 }
