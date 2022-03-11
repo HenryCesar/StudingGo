@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"api-rest/models"
+	"fmt"
 	"strconv"
 	"sync"
 	"time"
@@ -10,36 +11,30 @@ import (
 )
 
 var (
-	handler   time.Duration
 	all       = []*models.Fibonacci{}
 	check     *models.Fibonacci
 	fibo      *models.Fibonacci
 	ok        int
 	fibResult uint64
-	count     int
-	completed int
 	mutex     sync.RWMutex
 )
 
-// Função que recebe o tempo inicial e insere o tempo final na variável para depois converter em segundos.
-func timeTrack(start time.Time) {
-	elapsed := time.Since(start)
-	handler = time.Duration(elapsed.Seconds())
-}
-
 // Função que chama o Fibonacci
 func fibonacciCaller(x uint64) {
-	defer timeTrack(time.Now())
+	start := time.Now()
+
 	fibResult = callFibonacci(x)
 
+	elapsed := time.Since(start)
+	duration := time.Duration(elapsed / time.Second)
+	fmt.Println("elapsed do fibonacciCaller: ", elapsed, "duration do fibonacciCaller", duration)
 	mutex.Lock()
 	fibo = &models.Fibonacci{
 		Input:    x,
 		Result:   fibResult,
-		Duration: handler,
+		Duration: duration,
 	}
 	all = append(all, fibo)
-	completed++
 	mutex.Unlock()
 }
 
@@ -50,7 +45,7 @@ func callFibonacci(x uint64) uint64 {
 	return callFibonacci(x-1) + callFibonacci(x-2)
 }
 
-func checkFibonacci(input uint64) {
+func checkFibonacci(input uint64) int {
 	ok = 0
 	for _, c := range all {
 		if c.Input == input {
@@ -59,6 +54,7 @@ func checkFibonacci(input uint64) {
 			break
 		}
 	}
+	return ok
 }
 
 func GetAll(c *fiber.Ctx) error {
@@ -76,31 +72,36 @@ func GetNumber(c *fiber.Ctx) error {
 			"done": false,
 		})
 	}
-	checkFibonacci(input)
-
-	count++
-	if ok == 1 {
-
+	// Checa se o número inserido já existe
+	checker := checkFibonacci(input)
+	// Se sim, mostra pro usuário
+	if checker == 1 {
 		return c.Status(fiber.StatusFound).JSON(fiber.Map{
 			"done": true,
 			"fib": fiber.Map{
 				"": check,
 			},
 		})
+	}
+
+	// Se não, liga um timer de 500 ms. Caso o timer estoure, dá false.
+	timerToFalse := time.NewTimer(time.Millisecond * 500)
+	go fibonacciCaller(input)
+
+	<-timerToFalse.C
+	checker2 := checkFibonacci(input)
+	// Checa novamente se o número existe, caso houve o registro antes dos 500 ms, retorna, se não da false.
+	if checker2 == 1 {
+		timerToFalse.Stop()
+		return c.Status(fiber.StatusCreated).JSON(fiber.Map{
+			"done": true,
+			"fib": fiber.Map{
+				"": fibo,
+			},
+		})
 	} else {
-		go fibonacciCaller(input)
-		time.Sleep(5 * time.Millisecond)
-		if count != completed {
-			return c.Status(fiber.StatusAccepted).JSON(fiber.Map{
-				"done": false,
-			})
-		} else {
-			return c.Status(fiber.StatusCreated).JSON(fiber.Map{
-				"done": true,
-				"fib": fiber.Map{
-					"": fibo,
-				},
-			})
-		}
+		return c.Status(fiber.StatusAccepted).JSON(fiber.Map{
+			"done": false,
+		})
 	}
 }
