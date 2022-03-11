@@ -11,19 +11,20 @@ import (
 )
 
 var (
-	all       = []*models.Fibonacci{}
-	check     *models.Fibonacci
-	fibo      *models.Fibonacci
-	ok        int
-	fibResult uint64
-	mutex     sync.RWMutex
+	// Slice dos resultados do Fibonacci
+	all = []*models.Fibonacci{}
+	// Variável auxíliar para checar se o fibonacci de um número já existe
+	check *models.Fibonacci
+	// Variável auxíliar/handler de um fibonacci
+	fibo  *models.Fibonacci
+	mutex sync.RWMutex
 )
 
 // Função que chama o Fibonacci
 func fibonacciCaller(x uint64) {
 	start := time.Now()
 
-	fibResult = callFibonacci(x)
+	fibResult := callFibonacci(x)
 
 	elapsed := time.Since(start)
 	duration := time.Duration(elapsed / time.Second)
@@ -46,6 +47,7 @@ func callFibonacci(x uint64) uint64 {
 }
 
 func checkFibonacci(input uint64) int {
+	var ok int
 	ok = 0
 	for _, c := range all {
 		if c.Input == input {
