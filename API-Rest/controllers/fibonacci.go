@@ -39,8 +39,8 @@ func fibonacciCaller(x uint64, ch chan int, ch2 chan int) {
 		Duration: duration,
 	}
 	all = append(all, fibo)
-	ch2 <- 1
 	mutex.Unlock()
+	ch2 <- 1
 }
 
 func callFibonacci(x uint64) uint64 {
