@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"api-rest/models"
-	"fmt"
 	"strconv"
 	"sync"
 	"time"
@@ -13,22 +12,26 @@ import (
 var (
 	// Slice dos resultados do Fibonacci
 	all = []*models.Fibonacci{}
-	// Variável auxíliar para checar se o fibonacci de um número já existe
-	check *models.Fibonacci
 	// Variável auxíliar/handler de um fibonacci
 	fibo  *models.Fibonacci
 	mutex sync.RWMutex
 )
 
 // Função que chama o Fibonacci
-func fibonacciCaller(x uint64) {
+func fibonacciCaller(x uint64, ch chan int, ch2 chan int) {
+	// Checa se há o Fibonacci do número inserido
+	checker := checkFibonacci(x)
+	if checker == 1 { // Se sim, finaliza a go routine
+		ch <- checker
+		return
+	}
 	start := time.Now()
 
 	fibResult := callFibonacci(x)
 
 	elapsed := time.Since(start)
 	duration := time.Duration(elapsed / time.Second)
-	fmt.Println("elapsed do fibonacciCaller: ", elapsed, "duration do fibonacciCaller", duration)
+	// fmt.Println("elapsed do fibonacciCaller: ", elapsed, "duration do fibonacciCaller", duration)
 	mutex.Lock()
 	fibo = &models.Fibonacci{
 		Input:    x,
@@ -36,6 +39,7 @@ func fibonacciCaller(x uint64) {
 		Duration: duration,
 	}
 	all = append(all, fibo)
+	ch2 <- 1
 	mutex.Unlock()
 }
 
@@ -51,7 +55,7 @@ func checkFibonacci(input uint64) int {
 	ok = 0
 	for _, c := range all {
 		if c.Input == input {
-			check = c
+			fibo = c
 			ok = 1
 			break
 		}
@@ -74,26 +78,24 @@ func GetNumber(c *fiber.Ctx) error {
 			"done": false,
 		})
 	}
-	// Checa se o número inserido já existe
-	checker := checkFibonacci(input)
-	// Se sim, mostra pro usuário
-	if checker == 1 {
-		return c.Status(fiber.StatusFound).JSON(fiber.Map{
-			"done": true,
-			"fib":  check,
-		})
-	} else { //Se não, roda a goroutine do fibonacci.
-		go fibonacciCaller(input)
-		time.Sleep(400 * time.Millisecond) //Espera 400ms pela resposta da goroutine
-		checker2 := checkFibonacci(input)  //Checa se foi efetuado o fibonacci
-		if checker2 == 1 {                 //Se sim, retorna o valor
+	chAux := make(chan int)
+	chFib := make(chan int)
+	go fibonacciCaller(input, chAux, chFib)
+	for {
+		select {
+		case <-chAux: // Caso o canal auxiliar obtiver algo, retorna o resultado como "encontrado" junto ao conteúdo
 			return c.Status(fiber.StatusFound).JSON(fiber.Map{
 				"done": true,
-				"fib":  check,
+				"fib":  fibo,
 			})
-		} else { // Se não, retorna "false" e continua rodando.
-			return c.Status(fiber.StatusCreated).JSON(fiber.Map{
+		case <-time.After(time.Millisecond * 500): // Caso o tempo passe de 500 milisegundos, retorna falso.
+			return c.Status(fiber.StatusAccepted).JSON(fiber.Map{
 				"done": false,
+			})
+		case <-chFib: // Caso o channel do Fibonacci obtiver algo, significa que houve o fibonacci do número, com isso retorna o resultado.
+			return c.Status(fiber.StatusCreated).JSON(fiber.Map{
+				"done": true,
+				"fib":  fibo,
 			})
 		}
 	}
